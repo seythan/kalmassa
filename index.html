@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тренажер Автозапчастей</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            min-height: 100vh;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 15px; }
+        header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 1px solid #21262d;
+            margin-bottom: 20px;
+        }
+        h1 { color: #58a6ff; font-size: 2em; margin-bottom: 8px; }
+        .subtitle { color: #8b949e; font-size: 1em; }
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            overflow-x: auto;
+        }
+        .tab {
+            padding: 10px 16px;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: #c9d1d9;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+        .tab:hover { background: #1f2937; border-color: #58a6ff; }
+        .tab.active { background: #1f6feb; border-color: #58a6ff; color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .search-box {
+            width: 100%;
+            padding: 12px;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #c9d1d9;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        .search-box:focus { outline: none; border-color: #58a6ff; }
+        .category {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+        .category-header {
+            padding: 12px 16px;
+            background: #1f2937;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .category-header:hover { background: #273549; }
+        .category-title { font-size: 1.1em; font-weight: 600; color: #58a6ff; }
+        .category-count {
+            background: #30363d;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85em;
+        }
+        .category-content { display: none; padding: 12px; }
+        .category-content.open { display: block; }
+        .subcategory { margin-bottom: 12px; }
+        .subcategory-title {
+            color: #8b949e;
+            font-weight: 600;
+            margin-bottom: 8px;
+            padding-left: 8px;
+            border-left: 3px solid #58a6ff;
+        }
+        .item {
+            padding: 10px 12px;
+            background: #0d1117;
+            border: 1px solid #21262d;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .item:hover {
+            background: #1f2937;
+            border-color: #58a6ff;
+            transform: translateX(5px);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+            overflow-y: auto;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 25px;
+            position: relative;
+        }
+        .modal-close {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: none;
+            border: none;
+            color: #8b949e;
+            font-size: 28px;
+            cursor: pointer;
+            width: 36px;
+            height: 36px;
+        }
+        .modal-close:hover { color: #58a6ff; background: #21262d; }
+        .modal-image {
+            width: 100%;
+            height: 300px;
+            object-fit: contain;
+            border-radius: 8px;
+            margin-bottom: 18px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+        }
+        .modal-title { color: #58a6ff; font-size: 1.5em; margin-bottom: 12px; }
+        .modal-info {
+            margin-bottom: 12px;
+            padding: 12px;
+            background: #0d1117;
+            border-radius: 6px;
+            border-left: 3px solid #58a6ff;
+        }
+        .modal-info-label { color: #8b949e; font-weight: 600; margin-bottom: 4px; font-size: 0.9em; }
+        .modal-info-value { color: #c9d1d9; font-size: 1em; line-height: 1.4; }
+        .quiz-container {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .quiz-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .quiz-progress { color: #8b949e; font-size: 0.9em; }
+        .quiz-score { color: #58a6ff; font-weight: 600; }
+        .quiz-item-name {
+            font-size: 1.8em;
+            color: #ffffff;
+            margin-bottom: 15px;
+            text-align: center;
+            padding: 20px;
+            background: #0d1117;
+            border: 2px solid #30363d;
+            border-radius: 8px;
+            font-weight: 700;
+        }
+        .show-details-btn {
+            width: 100%;
+            background: #21262d;
+            border: 1px solid #30363d;
+            color: #58a6ff;
+            padding: 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            font-size: 1em;
+            font-weight: 600;
+        }
+        .show-details-btn:hover { background: #30363d; border-color: #58a6ff; }
+        .quiz-item-card {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .quiz-item-image {
+            width: 100%;
+            height: 250px;
+            object-fit: contain;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            background: #0d1117;
+        }
+        .quiz-item-details { display: grid; grid-template-columns: 1fr; gap: 10px; }
+        .quiz-item-detail {
+            background: #161b22;
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 3px solid #58a6ff;
+        }
+        .quiz-item-detail-label { color: #8b949e; font-size: 0.85em; margin-bottom: 4px; font-weight: 600; }
+        .quiz-item-detail-value { color: #c9d1d9; font-weight: 500; font-size: 0.95em; line-height: 1.4; }
+        .quiz-question {
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            color: #c9d1d9;
+            text-align: center;
+        }
+        .quiz-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+        .quiz-option {
+            padding: 16px;
+            background: #0d1117;
+            border: 2px solid #30363d;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            font-size: 1em;
+        }
+        .quiz-option:hover { background: #1f2937; border-color: #58a6ff; }
+        .quiz-option.correct { background: #1f6f3f; border-color: #2ea043; color: white; }
+        .quiz-option.wrong { background: #6f1f1f; border-color: #da3633; color: white; }
+        .quiz-option.disabled { pointer-events: none; }
+        .btn {
+            padding: 12px 24px;
+            background: #1f6feb;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn:hover { background: #388bfd; }
+        .btn-secondary { background: #30363d; }
+        .btn-secondary:hover { background: #484f58; }
+        .category-select {
+            padding: 10px;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #c9d1d9;
+            font-size: 16px;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .stat-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        .stat-value { font-size: 2em; color: #58a6ff; font-weight: 700; }
+        .stat-label { color: #8b949e; margin-top: 8px; font-size: 0.9em; }
+        .category-stats {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .category-stat-item { margin-bottom: 16px; }
+        .category-stat-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 0.9em;
+        }
+        .category-stat-name { color: #c9d1d9; font-weight: 600; }
+        .category-stat-score { color: #58a6ff; }
+        .progress-bar {
+            height: 8px;
+            background: #21262d;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #1f6feb, #58a6ff);
+            transition: width 0.5s;
+        }
+        .empty-state { text-align: center; padding: 40px 20px; color: #8b949e; }
+        .empty-state-icon { font-size: 3em; margin-bottom: 16px; }
+        @media (max-width: 768px) {
+            .quiz-options { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .modal-image, .quiz-item-image { height: 200px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔧 Тренажер Автозапчастей</h1>
+            <p class="subtitle">Изучайте каталог и тренируйтесь</p>
+        </header>
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('catalog')">📚 Каталог</button>
+            <button class="tab" onclick="switchTab('quiz')">🎯 Тренажер</button>
+            <button class="tab" onclick="switchTab('errors')">❌ Ошибки</button>
+            <button class="tab" onclick="switchTab('stats')">📊 Статистика</button>
+        </div>
+        <div id="catalog" class="tab-content active">
+            <input type="text" class="search-box" placeholder="🔍 Поиск..." oninput="searchItems(this.value)">
+            <div id="catalog-list"></div>
+        </div>
+        <div id="quiz" class="tab-content">
+            <div class="quiz-container">
+                <select class="category-select" id="quiz-category" onchange="startQuiz()">
+                    <option value="all">Все категории</option>
+                </select>
+                <div id="quiz-content"></div>
+            </div>
+        </div>
+        <div id="errors" class="tab-content">
+            <div class="quiz-container">
+                <h2>❌ Работа над ошибками</h2>
+                <button class="btn" onclick="startErrorQuiz()" style="margin: 10px 0;">Начать тренировку</button>
+                <div id="error-quiz-content"></div>
+            </div>
+        </div>
+        <div id="stats" class="tab-content">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="total-questions">0</div>
+                    <div class="stat-label">Всего вопросов</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="correct-answers">0</div>
+                    <div class="stat-label">Правильных</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="accuracy">0%</div>
+                    <div class="stat-label">Точность</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="error-count">0</div>
+                    <div class="stat-label">Ошибок</div>
+                </div>
+            </div>
+            <div class="category-stats">
+                <h3 style="margin-bottom: 20px; color: #58a6ff;">Статистика по категориям</h3>
+                <div id="category-stats-list"></div>
+            </div>
+        </div>
+    </div>
+    <div class="modal" id="item-modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+            <img class="modal-image" id="modal-image" src="" alt="">
+            <h2 class="modal-title" id="modal-title"></h2>
+            <div class="modal-info">
+                <div class="modal-info-label">Назначение:</div>
+                <div class="modal-info-value" id="modal-purpose"></div>
+            </div>
+            <div class="modal-info">
+                <div class="modal-info-label">Расположение:</div>
+                <div class="modal-info-value" id="modal-location"></div>
+            </div>
+            <div class="modal-info">
+                <div class="modal-info-label">Категория:</div>
+                <div class="modal-info-value" id="modal-category"></div>
+            </div>
+            <div class="modal-info">
+                <div class="modal-info-label">Подкатегория:</div>
+                <div class="modal-info-value" id="modal-subcategory"></div>
+            </div>
+        </div>
+    </div>
+    <script>
+        const catalogData = [
+{item:"Фильтр масляный", sub:"Детали для ТО", main:"Детали для ТО", purpose:"Очистка моторного масла", location:"На блоке цилиндров", img:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQtPZhaouoO01n_XVpet2LOixJsw_brfVYkCg&s"},
+{item:"Фильтр воздушный", sub:"Детали для ТО", main:"Детали для ТО", purpose:"Очистка воздуха для двигателя", location:"Корпус воздушного фильтра", img:"."},
+{item:"Фильтр топливный", sub:"Детали для ТО", main:"Детали для ТО", purpose:"Очистка топлива от примесей", location:"На топливопроводе или в баке", img:"."},
+{item:"Фильтр салонный", sub:"Детали для ТО", main:"Детали для ТО", purpose:"Очистка воздуха в салоне", location:"За бардачком или под капотом", img:"."},
+{item:"Фильтр трансмиссионный, фильтр ГУР", sub:"Детали для ТО", main:"Детали для ТО", purpose:"Очистка трансмиссионной жидкости", location:"В АКПП или бачке ГУР", img:"."},
+{item:"Свечи зажигания", sub:"Детали для ТО", main:"Детали для ТО", purpose:"Воспламенение топливной смеси", location:"В головке блока цилиндров", img:"."},
+{item:"Ремень приводной", sub:"Детали для ТО", main:"Детали для ТО", purpose:"Привод навесного оборудования", location:"Спереди двигателя", img:"."},
+{item:"Ремень ГРМ", sub:"Детали для ТО", main:"Детали для ТО", purpose:"Синхронизация вращения валов", location:"Под крышкой ГРМ", img:"."},
+{item:"Насос системы охлаждения", sub:"Детали для ТО", main:"Детали для ТО", purpose:"Циркуляция охлаждающей жидкости", location:"На блоке цилиндров", img:"."},
+{item:"Термостат", sub:"Детали для ТО", main:"Детали для ТО", purpose:"Регулировка температуры двигателя", location:"На выходе из двигателя", img:"."},
+{item:"Колодки тормозные", sub:"Детали для ТО", main:"Детали для ТО", purpose:"Замедление автомобиля", location:"В тормозном суппорте", img:"."},
+{item:"Щетки стеклоочистителя", sub:"Детали для ТО", main:"Детали для ТО", purpose:"Очистка стекол от воды и грязи", location:"На рычагах стеклоочистителя", img:"."},
+{item:"Двигатель в сборе", sub:"Двигатель в сборе, отдельные части двигателя", main:"Двигатель", purpose:"Преобразование энергии топлива", location:"Моторный отсек", img:"."},
+{item:"Крышка маслозаливной горловины", sub:"Головка блока цилиндров", main:"Двигатель", purpose:"Герметизация отверстия для заливки масла", location:"На клапанной крышке", img:"."},
+{item:"Крышка клапанная", sub:"Головка блока цилиндров", main:"Двигатель", purpose:"Защита механизма ГРМ", location:"Сверху ГБЦ", img:"."},
+{item:"Прокладка клапанной крышки", sub:"Головка блока цилиндров", main:"Двигатель", purpose:"Герметизация стыка крышки и ГБЦ", location:"Между крышкой и ГБЦ", img:"."},
+{item:"Головка блока цилиндров", sub:"Головка блока цилиндров", main:"Двигатель", purpose:"Размещение камер сгорания и клапанов", location:"Сверху блока цилиндров", img:"."},
+{item:"Прокладка головки цилиндра", sub:"Головка блока цилиндров", main:"Двигатель", purpose:"Герметизация стыка ГБЦ и блока", location:"Между ГБЦ и блоком", img:"."},
+{item:"Блок-картер", sub:"Блок-картер", main:"Двигатель", purpose:"Основной корпус двигателя", location:"Центральная часть двигателя", img:"."},
+{item:"Вентиляция", sub:"Блок-картер", main:"Двигатель", purpose:"Отвод картерных газов", location:"На клапанной крышке или блоке", img:"."},
+{item:"Коленчатый вал", sub:"Коленчатый вал, вкладыши", main:"Двигатель", purpose:"Преобразование движения поршней во вращение", location:"В нижней части блока", img:"."},
+{item:"Подшипник коленвала", sub:"Коленчатый вал, вкладыши", main:"Двигатель", purpose:"Обеспечение свободного вращения вала", location:"В постелях блока цилиндров", img:"."},
+{item:"Шестерня коленвала", sub:"Коленчатый вал, вкладыши", main:"Двигатель", purpose:"Передача вращения на ГРМ", location:"На переднем носке коленвала", img:"."},
+{item:"Шатун", sub:"Шатун", main:"Двигатель", purpose:"Соединение поршня с коленчатым валом", location:"Внутри цилиндра", img:"."},
+{item:"Вкладыш нижней головки шатуна", sub:"Шатун", main:"Двигатель", purpose:"Подшипник скольжения для шейки вала", location:"В нижней головке шатуна", img:"."},
+{item:"Втулка верхней головки шатуна", sub:"Шатун", main:"Двигатель", purpose:"Подшипник для поршневого пальца", location:"В верхней головке шатуна", img:"."},
+{item:"Поршень", sub:"Поршень", main:"Двигатель", purpose:"Восприятие давления газов", location:"Внутри цилиндра", img:"."},
+{item:"Комплект поршневых колец", sub:"Поршень", main:"Двигатель", purpose:"Герметизация камеры сгорания", location:"В канавках поршня", img:"."},
+{item:"Сальник коленвала, передний", sub:"Сальники, комплекты уплотнений", main:"Двигатель", purpose:"Предотвращение утечки масла спереди", location:"На переднем носке коленвала", img:"."},
+{item:"Сальник коленвала задний", sub:"Сальники, комплекты уплотнений", main:"Двигатель", purpose:"Предотвращение утечки масла со стороны КПП", location:"На заднем фланце коленвала", img:"."},
+{item:"Маховик", sub:"Кривошипношатунный механизм", main:"Двигатель", purpose:"Сглаживание вращения и запуск стартером", location:"На заднем конце коленвала", img:"."},
+{item:"Клапан впускной", sub:"Клапаны, регулировка", main:"Двигатель", purpose:"Впуск топливной смеси в цилиндр", location:"В головке блока цилиндров", img:"."},
+{item:"Клапан выпускной", sub:"Клапаны, регулировка", main:"Двигатель", purpose:"Выпуск отработавших газов", location:"В головке блока цилиндров", img:"."},
+{item:"Маслосъемные колпачки", sub:"Клапаны, регулировка", main:"Двигатель", purpose:"Предотвращение попадания масла в камеру", location:"На направляющих втулках клапанов", img:"."},
+{item:"Толкатели клапана", sub:"Клапаны, регулировка", main:"Двигатель", purpose:"Передача усилия от распредвала к клапану", location:"Между распредвалом и клапаном", img:"."},
+{item:"Пружины клапана", sub:"Клапаны, регулировка", main:"Двигатель", purpose:"Возврат клапана в закрытое положение", location:"На стержне клапана", img:"."},
+{item:"Стопор пружины клапана", sub:"Клапаны, регулировка", main:"Двигатель", purpose:"Фиксация пружины на стержне", location:"На верхнем торце пружины", img:"."},
+{item:"Система изменения фаз газораспределения", sub:"Клапаны, регулировка", main:"Двигатель", purpose:"Оптимизация работы на разных оборотах", location:"На распределительном валу", img:"."},
+{item:"Комплект ремня ГРМ", sub:"Ремень ГРМ, натяжители ремня", main:"Двигатель", purpose:"Комплект для замены ремня и роликов", location:"Спереди двигателя", img:"."},
+{item:"Ремень ГРМ", sub:"Ремень ГРМ, натяжители ремня", main:"Двигатель", purpose:"Синхронный привод распредвала", location:"Спереди двигателя", img:"."},
+{item:"Ролик натяжителя", sub:"Ремень ГРМ, натяжители ремня", main:"Двигатель", purpose:"Создание и поддержание натяжения", location:"Рядом с ремнем ГРМ", img:"."},
+{item:"Ролик обводной, направляющий", sub:"Ремень ГРМ, натяжители ремня", main:"Двигатель", purpose:"Изменение траектории движения ремня", location:"Рядом с ремнем ГРМ", img:"."},
+{item:"Натяжитель ремня", sub:"Ремень ГРМ, натяжители ремня", main:"Двигатель", purpose:"Автоматическое натяжение ремня", location:"На блоке цилиндров", img:"."},
+{item:"Крышка ремня ГРМ", sub:"Ремень ГРМ, натяжители ремня", main:"Двигатель", purpose:"Защита привода ГРМ от грязи", location:"Спереди двигателя", img:"."},
+{item:"Цепь привода распредвала", sub:"Цепь привода ГРМ", main:"Двигатель", purpose:"Синхронный привод (альтернатива ремню)", location:"Внутри передней части двигателя", img:"."},
+{item:"Натяжитель цепи", sub:"Цепь привода ГРМ", main:"Двигатель", purpose:"Устранение провисания цепи", location:"Рядом с цепью ГРМ", img:"."},
+{item:"Шестерня распредвала", sub:"Распредвал", main:"Двигатель", purpose:"Передача вращения на распредвал", location:"На торце распредвала", img:"."},
+{item:"Шестерня коленвала", sub:"Шестерни системы ГРМ", main:"Двигатель", purpose:"Ведущая шестерня привода ГРМ", location:"На носке коленчатого вала", img:"."},
+{item:"Муфта изменения фаз ГРМ", sub:"Шестерни системы ГРМ", main:"Двигатель", purpose:"Поворот распредвала для изменения фаз", location:"На шкиве распределительного вала", img:"."},
+{item:"Кронштейн двигателя", sub:"Крепление двигателя", main:"Двигатель", purpose:"Промежуточный элемент крепления", location:"Между двигателем и кузовом", img:"."},
+{item:"Опоры двигателя", sub:"Крепление двигателя", main:"Двигатель", purpose:"Гашение вибраций и удержание", location:"Между двигателем и подрамником", img:"."},
+{item:"Насос масляный", sub:"Насос масляный, комплектующие", main:"Двигатель", purpose:"Создание давления в системе смазки", location:"Внутри двигателя, внизу", img:"."},
+{item:"Прокладка", sub:"Насос масляный, комплектующие", main:"Двигатель", purpose:"Герметизация масляного насоса", location:"Под масляным насосом", img:"."},
+{item:"Шестерня масляного насоса", sub:"Насос масляный, комплектующие", main:"Двигатель", purpose:"Рабочий орган для перекачки масла", location:"Внутри корпуса маслонасоса", img:"."},
+{item:"Цепь привода маслонасоса", sub:"Насос масляный, комплектующие", main:"Двигатель", purpose:"Привод масляного насоса от коленвала", location:"Внутри двигателя", img:"."},
+{item:"Поддон масляный", sub:"Поддон масляный", main:"Двигатель", purpose:"Резервуар для хранения моторного масла", location:"В самой нижней части двигателя", img:"."},
+{item:"Радиатор масляный", sub:"Система смазки", main:"Двигатель", purpose:"Охлаждение моторного масла", location:"Перед основным радиатором", img:"."},
+{item:"Датчик давления масла", sub:"Система смазки", main:"Двигатель", purpose:"Контроль давления в масляной магистрали", location:"На блоке цилиндров или ГБЦ", img:"."},
+{item:"Указатель уровня масла", sub:"Система смазки", main:"Двигатель", purpose:"Визуальный контроль количества масла", location:"Проходит через поддон вверх", img:"."},
+{item:"Отстойник масла", sub:"Система смазки", main:"Двигатель", purpose:"Сбор тяжелых частиц и осадка", location:"В нижней части поддона", img:"."},
+{item:"Форсунка масляная", sub:"Система смазки", main:"Двигатель", purpose:"Охлаждение поршней струей масла", location:"В блоке цилиндров, снизу поршня", img:"."},
+{item:"Топливная форсунка", sub:"Приготовление смеси", main:"Двигатель", purpose:"Распыление топлива под давлением", location:"Во впускном коллекторе или в ГБЦ", img:"."},
+{item:"Дроссельная заслонка", sub:"Дроссельная заслонка в сборе", main:"Двигатель", purpose:"Регулировка количества поступающего воздуха", location:"Между фильтром и впускным коллектором", img:"."},
+{item:"Прокладка дроссельной заслонки", sub:"Дроссельная заслонка в сборе", main:"Двигатель", purpose:"Герметизация узла дросселя", location:"Под дроссельной заслонкой", img:"."},
+{item:"Блок управления двигателем", sub:"Двигатель", main:"Двигатель", purpose:"Обработка сигналов и управление", location:"В моторном отсеке или салоне", img:"."},
+{item:"Датчик массового расхода воздуха", sub:"Двигатель", main:"Двигатель", purpose:"Измерение массы поступающего воздуха", location:"После воздушного фильтра", img:"."},
+{item:"Датчик кислорода", sub:"Двигатель", main:"Двигатель", purpose:"Корректировка топливной смеси", location:"В выпускном коллекторе", img:"."},
+{item:"Фильтр воздушный", sub:"Воздухоочиститель в сборе", main:"Двигатель", purpose:"Очистка воздуха", location:"Внутри корпуса воздухоочистителя", img:"."},
+{item:"Корпус воздушного фильтра в сборе", sub:"Воздухоочиститель в сборе", main:"Двигатель", purpose:"Размещение фильтра и подвод воздуха", location:"В моторном отсеке", img:"."},
+{item:"Патрубок, шланг", sub:"Система подачи воздуха", main:"Двигатель", purpose:"Транспортировка воздуха", location:"Между узлами впуска", img:"."},
+{item:"Коллектор впускной", sub:"Коллектор впускной, комплектующие", main:"Двигатель", purpose:"Распределение смеси по цилиндрам", location:"Сбоку головки блока цилиндров", img:"."},
+{item:"Прокладка впускного коллектора", sub:"Коллектор впускной, комплектующие", main:"Двигатель", purpose:"Герметизация впускного тракта", location:"Между коллектором и ГБЦ", img:"."},
+{item:"Тросик газа", sub:"Двигатель", main:"Двигатель", purpose:"Механическая связь педали и дросселя", location:"От педали до дроссельной заслонки", img:"."},
+{item:"Катушка зажигания", sub:"Система зажигания, накаливания", main:"Двигатель", purpose:"Генерация высокого напряжения", location:"На свече зажигания или рядом", img:"."},
+{item:"Свечи зажигания", sub:"Система зажигания, накаливания", main:"Двигатель", purpose:"Образование искры", location:"В головке блока цилиндров", img:"."},
+{item:"Провода высоковольтные", sub:"Система зажигания, накаливания", main:"Двигатель", purpose:"Передача высокого напряжения", location:"От катушки к свечам", img:"."},
+{item:"Генератор импульсов", sub:"Система зажигания, накаливания", main:"Двигатель", purpose:"Определение положения валов", location:"Рядом с зубчатым венцом", img:"."},
+{item:"Вторичный воздушный клапан", sub:"Нагнетание дополнительного воздуха", main:"Двигатель", purpose:"Подача воздуха в выпуск для дожигания", location:"В системе выпуска", img:"."},
+{item:"Насос дополнительного воздуха", sub:"Нагнетание дополнительного воздуха", main:"Двигатель", purpose:"Создание давления вторичного воздуха", location:"В моторном отсеке", img:"."},
+{item:"Прокладки", sub:"Нагнетание дополнительного воздуха", main:"Двигатель", purpose:"Герметизация узлов системы", location:"В соединениях системы", img:"."},
+{item:"Ремень ГРМ", sub:"Ременный привод", main:"Двигатель", purpose:"Привод навесных агрегатов", location:"Спереди двигателя", img:"."},
+{item:"Натяжитель привода ГРМ", sub:"Ременный привод", main:"Двигатель", purpose:"Натяжение приводного ремня", location:"Рядом с приводным ремнем", img:"."},
+{item:"Шкив", sub:"Двигатель", main:"Двигатель", purpose:"Передача вращения ремнем", location:"На валу агрегата", img:"."},
+{item:"Механизм свободного хода генератора", sub:"Двигатель", main:"Двигатель", purpose:"Защита ремня от рывков", location:"На шкиве генератора", img:"."},
+{item:"Комплект прокладок", sub:"Прокладки", main:"Двигатель", purpose:"Полный набор для герметизации", location:"По всему двигателю", img:"."},
+{item:"Прокладка выпускного коллектора", sub:"Прокладки", main:"Двигатель", purpose:"Герметизация выпуска газов", location:"Между ГБЦ и выпускным коллектором", img:"."},
+{item:"Прокладка масляного поддона", sub:"Прокладки", main:"Двигатель", purpose:"Герметизация поддона", location:"Между поддоном и блоком", img:"."},
+{item:"Прокладка крышки распределительного механизма", sub:"Прокладки", main:"Двигатель", purpose:"Герметизация передней крышки", location:"Под передней крышкой двигателя", img:"."},
+{item:"Герметизация охлаждающей жидкости", sub:"Прокладки", main:"Двигатель", purpose:"Предотвращение течи антифриза", location:"В соединениях системы охлаждения", img:"."},
+{item:"Герметизация в сиcтеме циркуляции масла", sub:"Прокладки", main:"Двигатель", purpose:"Предотвращение течи масла", location:"В соединениях системы смазки", img:"."},
+{item:"Сальники, комплект уплотнений", sub:"Прокладки", main:"Двигатель", purpose:"Уплотнение вращающихся валов", location:"На коленвале, распредвале", img:"."},
+{item:"Электроника двигателя, датчики", sub:"Двигатель", main:"Двигатель", purpose:"Сбор информации о работе ДВС", location:"По всему двигателю", img:"."},
+{item:"Кожух двигателя", sub:"Двигатель", main:"Двигатель", purpose:"Декоративная и шумоизолирующая защита", location:"Сверху двигателя", img:"."},
+{item:"Защита двигателя", sub:"Двигатель", main:"Двигатель", purpose:"Защита от ударов и грязи снизу", location:"Под картером двигателя", img:"."},
+{item:"Фильтр топливный", sub:"Фильтр топливный", main:"Топливная система", purpose:"Тонкая очистка топлива", location:"На магистрали или в баке", img:"."},
+{item:"Форсунка", sub:"Топливная форсунка", main:"Топливная система", purpose:"Дозированная подача топлива", location:"Во впускном коллекторе или ГБЦ", img:"."},
+{item:"Прокладка форсунки", sub:"Топливная форсунка", main:"Топливная система", purpose:"Герметизация посадки форсунки", location:"Под форсункой", img:"."},
+{item:"Насос топливный", sub:"Насос топливный, комплектующие", main:"Топливная система", purpose:"Создание давления в рампе", location:"В топливном баке или под капотом", img:"."},
+{item:"Компоненты топливного насоса", sub:"Насос топливный, комплектующие", main:"Топливная система", purpose:"Замена изношенных частей", location:"Внутри топливного модуля", img:"."},
+{item:"Бак топливный", sub:"Бак топливный, комплектующие", main:"Топливная система", purpose:"Хранение запаса топлива", location:"Под днищем автомобиля, сзади", img:"."},
+{item:"Датчик уровня топлива", sub:"Бак топливный, комплектующие", main:"Топливная система", purpose:"Измерение количества топлива", location:"Внутри топливного бака", img:"."},
+{item:"Крышка топливного бака", sub:"Бак топливный, комплектующие", main:"Топливная система", purpose:"Герметизация горловины", location:"На горловине топливного бака", img:"."},
+{item:"Топливопровод", sub:"Топливная система", main:"Топливная система", purpose:"Транспортировка топлива", location:"Под днищем и в моторном отсеке", img:"."},
+{item:"Регулятор давления подачи топлива", sub:"Топливная система", main:"Топливная система", purpose:"Поддержание стабильного давления", location:"На топливной рампе или в баке", img:"."},
+{item:"Насос системы охлаждения", sub:"Насос системы охлаждения, прокладка", main:"Система охлаждения", purpose:"Перекачка антифриза", location:"На блоке цилиндров", img:"."},
+{item:"Прокладка", sub:"Насос системы охлаждения, прокладка", main:"Система охлаждения", purpose:"Герметизация помпы", location:"Под корпусом помпы", img:"."},
+{item:"Термостат", sub:"Термостат, прокладка термостата", main:"Система охлаждения", purpose:"Регулировка температуры", location:"На выходе из двигателя", img:"."},
+{item:"Прокладка термостата", sub:"Термостат, прокладка термостата", main:"Система охлаждения", purpose:"Герметизация корпуса", location:"Под корпусом термостата", img:"."},
+{item:"Корпус термостата", sub:"Термостат, прокладка термостата", main:"Система охлаждения", purpose:"Размещение и крепление", location:"На блоке цилиндров", img:"."},
+{item:"Патрубки системы охлаждения", sub:"Патрубки системы охлаждения", main:"Система охлаждения", purpose:"Соединение узлов", location:"Между двигателем и радиатором", img:"."},
+{item:"Соединительные элементы", sub:"Патрубки системы охлаждения", main:"Система охлаждения", purpose:"Фиксация патрубков", location:"На концах патрубков", img:"."},
+{item:"Фланец", sub:"Патрубки системы охлаждения", main:"Система охлаждения", purpose:"Жесткое соединение трубопроводов", location:"В разрывах системы", img:"."},
+{item:"Радиатор системы охлаждения", sub:"Радиатор водяной", main:"Система охлаждения", purpose:"Отвод тепла в атмосферу", location:"Перед двигателем", img:"."},
+{item:"Крепление радиатора", sub:"Радиатор водяной", main:"Система охлаждения", purpose:"Фиксация радиатора", location:"По краям радиатора", img:"."},
+{item:"Расширительный бачок", sub:"Радиатор водяной", main:"Система охлаждения", purpose:"Компенсация объема антифриза", location:"В моторном отсеке", img:"."},
+{item:"Вентилятор охлаждения радиатора", sub:"Система охлаждения", main:"Система охлаждения", purpose:"Обдув радиатора", location:"За радиатором", img:"."},
+{item:"Выключатель, датчик", sub:"Система охлаждения", main:"Система охлаждения", purpose:"Контроль температуры", location:"На радиаторе или термостате", img:"."},
+{item:"Реле", sub:"Система охлаждения", main:"Система охлаждения", purpose:"Коммутация цепи вентилятора", location:"В блоке предохранителей", img:"."},
+{item:"Блок управления", sub:"Система охлаждения", main:"Система охлаждения", purpose:"Управление работой системы", location:"В моторном отсеке", img:"."},
+{item:"Коллектор выпускной", sub:"Коллектор выпускной, комплектующие", main:"Система выпуска", purpose:"Сбор отработавших газов", location:"Сбоку головки блока", img:"."},
+{item:"Прокладка выпускного коллектора", sub:"Коллектор выпускной, комплектующие", main:"Система выпуска", purpose:"Герметизация выпуска", location:"Между ГБЦ и коллектором", img:"."},
+{item:"Трубы", sub:"Глушитель в сборе", main:"Система выпуска", purpose:"Транспортировка газов", location:"Под днищем автомобиля", img:"."},
+{item:"Катализатор", sub:"Глушитель в сборе", main:"Система выпуска", purpose:"Очистка выхлопных газов", location:"После выпускного коллектора", img:"."},
+{item:"Глушитель", sub:"Глушитель в сборе", main:"Система выпуска", purpose:"Снижение шума выхлопа", location:"В задней части автомобиля", img:"."},
+{item:"Датчик давления выхлопных газов", sub:"Нейтрализация ОГ", main:"Система выпуска", purpose:"Контроль забитости фильтра", location:"До и после катализатора", img:"."},
+{item:"Прокладка", sub:"Монтажные элементы", main:"Система выпуска", purpose:"Герметизация фланцев", location:"Между фланцами труб", img:"."},
+{item:"Хомут", sub:"Монтажные элементы", main:"Система выпуска", purpose:"Соединение элементов", location:"На стыках труб", img:"."},
+{item:"Резиновый подвес", sub:"Монтажные элементы", main:"Система выпуска", purpose:"Гашение вибраций", location:"Под днищем, на кузове", img:"."},
+{item:"Кронштейн", sub:"Монтажные элементы", main:"Система выпуска", purpose:"Крепление элементов", location:"На кузове или агрегатах", img:"."},
+{item:"Пружина", sub:"Монтажные элементы", main:"Система выпуска", purpose:"Компенсация теплового расширения", location:"На стыках элементов", img:"."},
+{item:"Распорная втулка", sub:"Монтажные элементы", main:"Система выпуска", purpose:"Центровка фланцев", location:"В отверстиях фланцев", img:"."},
+{item:"Комплект сцепления", sub:"Система сцепления", main:"Трансмиссия", purpose:"Передача и разрыв момента", location:"Между двигателем и КПП", img:"."},
+{item:"Корзина сцепления", sub:"Система сцепления", main:"Трансмиссия", purpose:"Прижим диска к маховику", location:"На маховике", img:"."},
+{item:"Диск сцепления", sub:"Система сцепления", main:"Трансмиссия", purpose:"Передача момента за счет трения", location:"Между маховиком и корзиной", img:"."},
+{item:"Подшипник выжимной", sub:"Подшипник выжимной", main:"Трансмиссия", purpose:"Нажатие на лепестки корзины", location:"На первичном валу КПП", img:"."},
+{item:"Подвижная втулка", sub:"Подшипник выжимной", main:"Трансмиссия", purpose:"Направление движения подшипника", location:"На корпусе КПП", img:"."},
+{item:"Возвратная вилка", sub:"Подшипник выжимной", main:"Трансмиссия", purpose:"Перемещение выжимного подшипника", location:"Внутри картера сцепления", img:"."},
+{item:"Маховик", sub:"Система сцепления", main:"Трансмиссия", purpose:"Ведущий диск для сцепления", location:"На коленчатом валу", img:"."},
+{item:"Кронштейн", sub:"Механическая коробка переключения передач", main:"Трансмиссия", purpose:"Крепление КПП", location:"На картере КПП", img:"."},
+{item:"Крепление КПП", sub:"Механическая коробка переключения передач", main:"Трансмиссия", purpose:"Фиксация коробки", location:"Между КПП и кузовом", img:"."},
+{item:"Датчик", sub:"Механическая коробка переключения передач", main:"Трансмиссия", purpose:"Контроль скорости или селектора", location:"На корпусе КПП", img:"."},
+{item:"Коробка передач", sub:"Автоматическая коробка передач", main:"Трансмиссия", purpose:"Изменение передаточного числа", location:"За двигателем", img:"."},
+{item:"Сальники", sub:"Автоматическая коробка передач", main:"Трансмиссия", purpose:"Предотвращение утечки масла", location:"На валах КПП", img:"."},
+{item:"Управление, гидравлика", sub:"Автоматическая коробка передач", main:"Трансмиссия", purpose:"Переключение передач", location:"Внутри картера АКПП", img:"."},
+{item:"Фильтр трансмиссионный", sub:"Автоматическая коробка передач", main:"Трансмиссия", purpose:"Очистка масла АКПП", location:"Внутри поддона АКПП", img:"."},
+{item:"Поддон масляный", sub:"Поддон масляный", main:"Трансмиссия", purpose:"Резервуар для масла АКПП", location:"Снизу коробки передач", img:"."},
+{item:"Комплект запчастей для замены масла", sub:"Автоматическая коробка передач", main:"Трансмиссия", purpose:"Фильтр, прокладка и сальники", location:"Внутри поддона АКПП", img:"."},
+{item:"Масло трансмиссионное", sub:"Автоматическая коробка передач", main:"Трансмиссия", purpose:"Смазка и передача усилия", location:"Внутри коробки передач", img:"."},
+{item:"Приводной вал", sub:"Привод колеса", main:"Трансмиссия", purpose:"Передача вращения к колесу", location:"Под днищем, к ведущим колесам", img:"."},
+{item:"ШРУС", sub:"Привод колеса", main:"Трансмиссия", purpose:"Передача вращения под углом", location:"На концах приводного вала", img:"."},
+{item:"Пыльник", sub:"Привод колеса", main:"Трансмиссия", purpose:"Защита ШРУСа от грязи", location:"На шарнире равных угловых скоростей", img:"."},
+{item:"Дифференциал", sub:"Дифференциал", main:"Трансмиссия", purpose:"Распределение момента между колесами", location:"Внутри КПП или моста", img:"."},
+{item:"Сальники, уплотнения", sub:"Дифференциал", main:"Трансмиссия", purpose:"Герметизация полуосей", location:"В местах выхода полуосей", img:"."},
+{item:"Амортизатор", sub:"Амортизатор подвески, комплектующие", main:"Ходовая часть", purpose:"Гашение колебаний кузова", location:"Между кузовом и рычагом", img:"."},
+{item:"Пыльник амортизатора", sub:"Амортизатор подвески, комплектующие", main:"Ходовая часть", purpose:"Защита штока", location:"На штоке амортизатора", img:"."},
+{item:"Отбойник амортизатора", sub:"Амортизатор подвески, комплектующие", main:"Ходовая часть", purpose:"Защита от пробоя", location:"На штоке амортизатора", img:"."},
+{item:"Опора амортизатора подвески", sub:"Амортизатор подвески, комплектующие", main:"Ходовая часть", purpose:"Крепление амортизатора к кузову", location:"В верхней части стойки", img:"."},
+{item:"Пружины", sub:"Пружина подвески, комплектующие", main:"Ходовая часть", purpose:"Удержание веса автомобиля", location:"Вокруг амортизатора или на рычаге", img:"."},
+{item:"Проставка пружины", sub:"Пружина подвески, комплектующие", main:"Ходовая часть", purpose:"Регулировка высоты или защита", location:"Под или над пружиной", img:"."},
+{item:"Стабилизатор", sub:"Стабилизатор поперечной устойчивости, крепление", main:"Ходовая часть", purpose:"Уменьшение кренов в поворотах", location:"Между левым и правым рычагами", img:"."},
+{item:"Стойки стабилизатора", sub:"Стабилизатор поперечной устойчивости, крепление", main:"Ходовая часть", purpose:"Соединение стабилизатора с рычагом", location:"Между стабилизатором и подвеской", img:"."},
+{item:"Втулки стабилизатора", sub:"Стабилизатор поперечной устойчивости, крепление", main:"Ходовая часть", purpose:"Крепление стабилизатора к кузову", location:"В местах изгиба стабилизатора", img:"."},
+{item:"Детали крепежа", sub:"Стабилизатор поперечной устойчивости, крепление", main:"Ходовая часть", purpose:"Фиксация элементов", location:"По всей длине стабилизатора", img:"."},
+{item:"Рычаг передний нижний", sub:"Рычаги и тяги подвески", main:"Ходовая часть", purpose:"Соединение ступицы с подрамником", location:"Снизу передней подвески", img:"."},
+{item:"Рычаг передний верхний", sub:"Рычаги и тяги подвески", main:"Ходовая часть", purpose:"Контроль положения колеса", location:"Сверху передней подвески", img:"."},
+{item:"Рычаг (поперечный, диагональный, продольный)", sub:"Рычаги и тяги подвески", main:"Ходовая часть", purpose:"Направление движения колеса", location:"В подвеске", img:"."},
+{item:"Сайлентблок переднего нижнего рычага", sub:"Рычаги и тяги подвески", main:"Ходовая часть", purpose:"Упругое соединение", location:"В местах крепления рычага", img:"."},
+{item:"Сайлентблок переднего верхнего рычага", sub:"Рычаги и тяги подвески", main:"Ходовая часть", purpose:"Упругое соединение", location:"В местах крепления рычага", img:"."},
+{item:"Крепление рычага подвески", sub:"Рычаги и тяги подвески", main:"Ходовая часть", purpose:"Фиксация рычага", location:"На подрамнике или кузове", img:"."},
+{item:"Ступица колеса", sub:"Ступица колеса, составляющие", main:"Ходовая часть", purpose:"Крепление колеса и вращение", location:"На поворотном кулаке или балке", img:"."},
+{item:"Подшипник ступичный", sub:"Ступица колеса, составляющие", main:"Ходовая часть", purpose:"Обеспечение вращения ступицы", location:"Внутри ступицы или кулака", img:"."},
+{item:"Поворотный кулак", sub:"Кулак поворотный, составляющие", main:"Ходовая часть", purpose:"Соединение подвески и поворот", location:"Между рычагами и ступицей", img:"."},
+{item:"Балка моста, надрамник", sub:"Балка моста, подвеска оси", main:"Ходовая часть", purpose:"Основа для крепления подвески", location:"Снизу кузова", img:"."},
+{item:"Масло гидравлическое", sub:"Ходовая часть", main:"Ходовая часть", purpose:"Рабочая жидкость", location:"Внутри амортизаторов или бачка", img:"."},
+{item:"Диски", sub:"Колеса, шины", main:"Ходовая часть", purpose:"Основа для крепления шины", location:"На ступице колеса", img:"."},
+{item:"Болты, гайки, комплектующие", sub:"Колеса, шины", main:"Ходовая часть", purpose:"Крепление колеса", location:"На шпильках ступицы", img:"."},
+{item:"Рейка рулевая", sub:"Рулевой механизм, составляющие", main:"Рулевое управление", purpose:"Преобразование вращения в линейное", location:"На подрамнике или кузове", img:"."},
+{item:"Тяга рулевая", sub:"Рулевой механизм, составляющие", main:"Рулевое управление", purpose:"Передача усилия от рейки", location:"От рейки к поворотному кулаку", img:"."},
+{item:"Наконечник рулевой тяги", sub:"Рулевой механизм, составляющие", main:"Рулевое управление", purpose:"Шарнирное соединение", location:"На конце рулевой тяги", img:"."},
+{item:"Пыльник рулевой рейки", sub:"Рулевой механизм, составляющие", main:"Рулевое управление", purpose:"Защита внутренних частей", location:"На корпусе рулевой рейки", img:"."},
+{item:"Демпфер рулевой рейки", sub:"Рулевой механизм, составляющие", main:"Рулевое управление", purpose:"Гашение вибраций на руле", location:"Между тягой и кузовом", img:"."},
+{item:"Рулевое колесо", sub:"Рулевая колонка", main:"Рулевое управление", purpose:"Ввод команды водителя", location:"В салоне, на рулевой колонке", img:"."},
+{item:"Насос ГУР", sub:"Система гидроусилителя руля", main:"Рулевое управление", purpose:"Создание давления жидкости", location:"На двигателе, с приводом от ремня", img:"."},
+{item:"Шкив насоса ГУР", sub:"Система гидроусилителя руля", main:"Рулевое управление", purpose:"Передача вращения на насос", location:"На валу насоса ГУР", img:"."},
+{item:"Шланги ГУР", sub:"Система гидроусилителя руля", main:"Рулевое управление", purpose:"Транспортировка жидкости", location:"Между насосом, рейкой и бачком", img:"."},
+{item:"Бачок ГУР", sub:"Система гидроусилителя руля", main:"Рулевое управление", purpose:"Хранение жидкости", location:"В моторном отсеке", img:"."},
+{item:"Датчик угла поворота", sub:"Блок управления, датчики, реле", main:"Рулевое управление", purpose:"Определение положения руля", location:"На рулевой колонке", img:"."},
+{item:"Колодки тормозные дисковые", sub:"Дисковый тормозной механизм", main:"Тормозная система", purpose:"Создание трения для замедления", location:"В тормозном суппорте", img:"."},
+{item:"Диск тормозной", sub:"Дисковый тормозной механизм", main:"Тормозная система", purpose:"Рабочая поверхность для торможения", location:"На ступице колеса", img:"."},
+{item:"Суппорт тормозной", sub:"Дисковый тормозной механизм", main:"Тормозная система", purpose:"Прижим колодок к диску", location:"На поворотном кулаке", img:"."},
+{item:"Направляющие суппорта", sub:"Дисковый тормозной механизм", main:"Тормозная система", purpose:"Обеспечение подвижности", location:"В корпусе суппорта", img:"."},
+{item:"Ремкомплект тормозного суппорта, пыльники", sub:"Дисковый тормозной механизм", main:"Тормозная система", purpose:"Восстановление герметичности", location:"Внутри суппорта", img:"."},
+{item:"Детали тормозного суппорта", sub:"Дисковый тормозной механизм", main:"Тормозная система", purpose:"Замена изношенных компонентов", location:"Внутри суппорта", img:"."},
+{item:"Детали тормозной системы", sub:"Дисковый тормозной механизм", main:"Тормозная система", purpose:"Крепежные и вспомогательные элементы", location:"В тормозном механизме", img:"."},
+{item:"Тросы, тяги и рычаги тормозной системы", sub:"Стояночный тормоз", main:"Тормозная система", purpose:"Механический привод ручника", location:"От рычага в салоне к колесам", img:"."},
+{item:"Датчики АБС", sub:"Система курсовой устойчивости ESP (ABS, EBD, EDS, ASR)", main:"Тормозная система", purpose:"Контроль скорости вращения колеса", location:"Рядом со ступичным подшипником", img:"."},
+{item:"Гидроблок АБС (модулятор)", sub:"Система курсовой устойчивости ESP (ABS, EBD, EDS, ASR)", main:"Тормозная система", purpose:"Регулировка давления в контурах", location:"В моторном отсеке", img:"."},
+{item:"Блок управления АБС, датчики, реле", sub:"Система курсовой устойчивости ESP (ABS, EBD, EDS, ASR)", main:"Тормозная система", purpose:"Обработка сигналов", location:"На гидроблоке или рядом", img:"."},
+{item:"Шланги тормозные", sub:"Тормозная система", main:"Тормозная система", purpose:"Гибкая подводка жидкости", location:"Между кузовом и суппортом", img:"."},
+{item:"Трубки тормозной системы", sub:"Тормозная система", main:"Тормозная система", purpose:"Жесткая магистраль", location:"Под днищем автомобиля", img:"."},
+{item:"Насос вакуумный", sub:"Тормозная система", main:"Тормозная система", purpose:"Создание разрежения для усилителя", location:"На двигателе или отдельно", img:"."},
+{item:"Усилитель тормозной системы", sub:"Тормозная система", main:"Тормозная система", purpose:"Увеличение усилия от педали", location:"Между педалью и ГТЦ", img:"."},
+{item:"Главный тормозной цилиндр", sub:"Тормозная система", main:"Тормозная система", purpose:"Преобразование усилия в давление", location:"В моторном отсеке", img:"."},
+{item:"Выключатель фонаря сигнала торможения", sub:"Тормозная система", main:"Тормозная система", purpose:"Включение стоп-сигналов", location:"На кронштейне педали тормоза", img:"."},
+{item:"Жидкость тормозная", sub:"Тормозная система", main:"Тормозная система", purpose:"Рабочее тело для передачи давления", location:"Внутри всей тормозной системы", img:"."},
+{item:"Аккумулятор", sub:"Электрооборудование", main:"Электрооборудование", purpose:"Хранение электроэнергии", location:"В моторном отсеке или багажнике", img:"."},
+{item:"Стартер", sub:"Система стартера", main:"Электрооборудование", purpose:"Раскрутка коленвала при запуске", location:"Снизу или сбоку двигателя", img:"."},
+{item:"Стартер, детали стартера", sub:"Система стартера", main:"Электрооборудование", purpose:"Компоненты для ремонта", location:"Внутри корпуса стартера", img:"."},
+{item:"Тяговое реле стартера", sub:"Система стартера", main:"Электрооборудование", purpose:"Втягивание бендикса", location:"На корпусе стартера", img:"."},
+{item:"Генератор", sub:"Генератор, составляющие", main:"Электрооборудование", purpose:"Выработка электроэнергии", location:"Спереди двигателя", img:"."},
+{item:"Шкив генератора", sub:"Генератор, составляющие", main:"Электрооборудование", purpose:"Передача вращения на ротор", location:"На валу генератора", img:"."},
+{item:"Механизм свободного хода генератора", sub:"Генератор, составляющие", main:"Электрооборудование", purpose:"Защита ремня от рывков", location:"На шкиве генератора", img:"."},
+{item:"Регулятор", sub:"Генератор, составляющие", main:"Электрооборудование", purpose:"Поддержание стабильного напряжения", location:"На корпусе генератора", img:"."},
+{item:"Составляющие", sub:"Генератор, составляющие", main:"Электрооборудование", purpose:"Щетки, диодный мост, подшипники", location:"Внутри генератора", img:"."},
+{item:"Фары передние", sub:"Фары головного света, составляющие", main:"Электрооборудование", purpose:"Освещение дороги", location:"Спереди автомобиля", img:"."},
+{item:"Лампы", sub:"Фары головного света, составляющие", main:"Электрооборудование", purpose:"Источник света", location:"Внутри фар", img:"."},
+{item:"Основная фара комплектующие", sub:"Фары головного света, составляющие", main:"Электрооборудование", purpose:"Корпуса, стекла, отражатели", location:"В сборе фары", img:"."},
+{item:"Регулировка угла наклона фар", sub:"Фары головного света, составляющие", main:"Электрооборудование", purpose:"Изменение направления пучка", location:"На корпусе фары или в салоне", img:"."},
+{item:"Фонарь задний", sub:"Задние фонари", main:"Электрооборудование", purpose:"Габариты, стоп-сигнал, поворот", location:"Сзади автомобиля", img:"."},
+{item:"Дополнительный стоп-сигнал", sub:"Задние фонари", main:"Электрооборудование", purpose:"Дублирование стоп-сигнала", location:"На стекле или спойлере", img:"."},
+{item:"Задняя противотуманная фара", sub:"Задние фонари", main:"Электрооборудование", purpose:"Обозначение в тумане", location:"В заднем бампере или фонаре", img:"."},
+{item:"Фонарь освещения номерного знака", sub:"Задние фонари", main:"Электрооборудование", purpose:"Подсветка номера", location:"Над или под номерным знаком", img:"."},
+{item:"Фонарь указателя поворота", sub:"Фонари указателя поворота", main:"Электрооборудование", purpose:"Сигнализация о повороте", location:"Спереди, сзади и на зеркалах", img:"."},
+{item:"Фара противотуманная", sub:"Дополнительное освещение", main:"Электрооборудование", purpose:"Освещение в туман и дождь", location:"В переднем бампере", img:"."},
+{item:"Освещение салона", sub:"Внутреннее освещение", main:"Электрооборудование", purpose:"Общий свет внутри", location:"На потолке салона", img:"."},
+{item:"Лампа для чтения", sub:"Внутреннее освещение", main:"Электрооборудование", purpose:"Локальная подсветка", location:"На потолке, рядом с сиденьями", img:"."},
+{item:"Подсветка приборов", sub:"Внутреннее освещение", main:"Электрооборудование", purpose:"Читаемость шкал", location:"За щитком приборов", img:"."},
+{item:"Выключатель", sub:"Выключатель, реле , блок управления освещения", main:"Электрооборудование", purpose:"Размыкание/замыкание цепи", location:"В салоне или под капотом", img:"."},
+{item:"Прерыватель указателей поворота", sub:"Выключатель, реле , блок управления освещения", main:"Электрооборудование", purpose:"Обеспечение мигания", location:"В блоке предохранителей", img:"."},
+{item:"Датчики", sub:"Контрольные приборы", main:"Электрооборудование", purpose:"Сбор данных для панели", location:"По всему автомобилю", img:"."},
+{item:"Многофункциональное реле", sub:"Электрооборудование", main:"Электрооборудование", purpose:"Управление несколькими цепями", location:"В блоке комфорта", img:"."},
+{item:"Реле", sub:"Электрооборудование", main:"Электрооборудование", purpose:"Коммутация силовых цепей", location:"В монтажном блоке", img:"."},
+{item:"Центральное электрооборудования", sub:"Электрооборудование", main:"Электрооборудование", purpose:"Распределение питания", location:"Под панелью приборов", img:"."},
+{item:"Щетки стеклоочистителя", sub:"Система очистки окон", main:"Электрооборудование", purpose:"Очистка стекла", location:"На стекле", img:"."},
+{item:"Двигатель стеклоочистителя", sub:"Система очистки окон", main:"Электрооборудование", purpose:"Привод трапеции", location:"Под капотом", img:"."},
+{item:"Насос омывателя", sub:"Система очистки окон", main:"Электрооборудование", purpose:"Подача жидкости на стекло", location:"В бачке омывателя", img:"."},
+{item:"Рычаг стеклоочистителя", sub:"Система очистки окон", main:"Электрооборудование", purpose:"Крепление щетки", location:"На оси трапеции", img:"."},
+{item:"Система тяг и рычагов привода стеклоочистителя", sub:"Система очистки окон", main:"Электрооборудование", purpose:"Преобразование вращения", location:"Под капотом", img:"."},
+{item:"Бачок стеклоочистителя", sub:"Система очистки окон", main:"Электрооборудование", purpose:"Хранение жидкости", location:"В моторном отсеке", img:"."},
+{item:"Распылитель омывателя", sub:"Система очистки окон", main:"Электрооборудование", purpose:"Формирование струи", location:"На капоте или на рычаге", img:"."},
+{item:"Система очистки фар", sub:"Электрооборудование", main:"Электрооборудование", purpose:"Омывание стекол фар", location:"В переднем бампере", img:"."},
+{item:"Звуковой сигнал", sub:"Электрооборудование", main:"Электрооборудование", purpose:"Подача звуковых предупреждений", location:"За решеткой радиатора", img:"."},
+{item:"Система помощи при парковке", sub:"Дополнительные удобства", main:"Электрооборудование", purpose:"Контроль расстояния", location:"В бамперах", img:"."},
+{item:"Подъемное устройство для окон", sub:"Дополнительные удобства", main:"Электрооборудование", purpose:"Перемещение стекла", location:"Внутри двери", img:"."},
+{item:"Обогрев сидений", sub:"Дополнительные удобства", main:"Электрооборудование", purpose:"Нагрев поверхности", location:"Под обивкой сиденья", img:"."},
+{item:"Центральный замок", sub:"Дополнительные удобства", main:"Электрооборудование", purpose:"Одновременное запирание", location:"В дверях и блоке управления", img:"."},
+{item:"Механизм закрывания двери", sub:"Дополнительные удобства", main:"Электрооборудование", purpose:"Фиксация двери", location:"В торце двери", img:"."},
+{item:"Стеклоподъемник", sub:"Реле, выключатели, электроприводы", main:"Электрооборудование", purpose:"Механизм подъема стекла", location:"Внутри дверной панели", img:"."},
+{item:"Люк, панорамная крыша", sub:"Реле, выключатели, электроприводы", main:"Электрооборудование", purpose:"Открытие проема в крыше", location:"В крыше автомобиля", img:"."},
+{item:"Зеркало", sub:"Реле, выключатели, электроприводы", main:"Электрооборудование", purpose:"Обзор зоны позади", location:"На дверях", img:"."},
+{item:"Фильтр салонный", sub:"Отопление", main:"Отопление / кондиционирование", purpose:"Очистка воздуха перед подачей", location:"За бардачком", img:"."},
+{item:"Теплообменник", sub:"Отопление", main:"Отопление / кондиционирование", purpose:"Нагрев воздуха для салона", location:"В корпусе отопителя", img:"."},
+{item:"Электродвигатель вентилятора", sub:"Отопление", main:"Отопление / кондиционирование", purpose:"Создание потока воздуха", location:"В корпусе отопителя", img:"."},
+{item:"Блок управления", sub:"Отопление", main:"Отопление / кондиционирование", purpose:"Регулировка температуры", location:"На центральной консоли", img:"."},
+{item:"Элементы управления", sub:"Отопление", main:"Отопление / кондиционирование", purpose:"Кнопки и переключатели", location:"На панели приборов", img:"."},
+{item:"Компрессор", sub:"Кондиционер", main:"Отопление / кондиционирование", purpose:"Сжатие и циркуляция хладагента", location:"На двигателе", img:"."},
+{item:"Конденсатор", sub:"Кондиционер", main:"Отопление / кондиционирование", purpose:"Охлаждение хладагента", location:"Перед основным радиатором", img:"."},
+{item:"Испаритель", sub:"Кондиционер", main:"Отопление / кондиционирование", purpose:"Испарение хладагента", location:"В корпусе отопителя", img:"."},
+{item:"Осушитель", sub:"Кондиционер", main:"Отопление / кондиционирование", purpose:"Удаление влаги из системы", location:"На ресивере или конденсаторе", img:"."},
+{item:"Комплект для дооборудования", sub:"Кондиционер", main:"Отопление / кондиционирование", purpose:"Детали для установки", location:"В салоне и моторном отсеке", img:"."},
+{item:"Клапаны", sub:"Кондиционер", main:"Отопление / кондиционирование", purpose:"Регулировка потока", location:"В магистралях", img:"."},
+{item:"Трубопровод системы кондиционирования", sub:"Кондиционер", main:"Отопление / кондиционирование", purpose:"Соединение узлов", location:"В моторном отсеке", img:"."},
+{item:"Управление, регулировка", sub:"Кондиционер", main:"Отопление / кондиционирование", purpose:"Контроль работы", location:"В салоне", img:"."},
+{item:"Панель приборов", sub:"Детали салона", main:"Детали салона", purpose:"Размещение приборов", location:"Перед водителем", img:"."},
+{item:"Подлокотник", sub:"Детали салона", main:"Детали салона", purpose:"Комфортное положение руки", location:"На двери или тоннеле", img:"."},
+{item:"Пепельница", sub:"Детали салона", main:"Детали салона", purpose:"Сбор окурков", location:"В центральной консоли", img:"."},
+{item:"Коврики", sub:"Детали салона", main:"Детали салона", purpose:"Защита пола от грязи", location:"На полу салона", img:"."},
+{item:"Ручки", sub:"Детали салона", main:"Детали салона", purpose:"Открывание дверей или поручни", location:"На дверях или потолке", img:"."},
+{item:"Органы управления автомобилем", sub:"Детали салона", main:"Детали салона", purpose:"Ввод команд", location:"На руле, панели, тоннеле", img:"."},
+{item:"Багажник", sub:"Детали салона", main:"Детали салона", purpose:"Размещение вещей", location:"В задней части", img:"."},
+{item:"Центральная консоль", sub:"Детали салона", main:"Детали салона", purpose:"Размещение органов управления", location:"Между передними сиденьями", img:"."},
+{item:"Сидения", sub:"Детали салона", main:"Детали салона", purpose:"Размещение пассажиров", location:"В салоне", img:"."},
+{item:"Солнцезащитный козырёк", sub:"Детали салона", main:"Детали салона", purpose:"Защита глаз от солнца", location:"На потолке над стеклом", img:"."},
+{item:"Облицовка", sub:"Детали салона", main:"Детали салона", purpose:"Декоративное закрытие", location:"На дверях, панели, стойках", img:"."},
+{item:"Центральный замок", sub:"Замок", main:"Детали салона", purpose:"Актуатор запирания", location:"Внутри двери", img:"."},
+{item:"Внешний замок", sub:"Замок", main:"Детали салона", purpose:"Механизм запирания снаружи", location:"В двери", img:"."},
+{item:"Внутренний замок", sub:"Замок", main:"Детали салона", purpose:"Механизм запирания изнутри", location:"В двери", img:"."},
+{item:"Цилиндр замка", sub:"Замок", main:"Детали салона", purpose:"Работа с ключом", location:"Во внешней ручке", img:"."},
+{item:"Составляющие", sub:"Замок", main:"Детали салона", purpose:"Тяги, пружины, фиксаторы", location:"Внутри двери", img:"."},
+{item:"Бампер", sub:"Бампер передний в сборе", main:"Детали кузова", purpose:"Защита при легких ударах", location:"Спереди или сзади", img:"."},
+{item:"Усилитель", sub:"Бампер передний в сборе", main:"Детали кузова", purpose:"Поглощение энергии", location:"За обшивкой бампера", img:"."},
+{item:"Молдинг/накладка", sub:"Бампер передний в сборе", main:"Детали кузова", purpose:"Декоративное оформление", location:"На поверхности бампера", img:"."},
+{item:"Решетка", sub:"Бампер передний в сборе", main:"Детали кузова", purpose:"Доступ воздуха к радиаторам", location:"В передней части", img:"."},
+{item:"Кронштейн крепления", sub:"Бампер передний в сборе", main:"Детали кузова", purpose:"Фиксация бампера", location:"По краям бампера", img:"."},
+{item:"Крыло, навесные части", sub:"Автомобиль, передняя часть", main:"Детали кузова", purpose:"Обтекание колеса", location:"Спереди, над колесом", img:"."},
+{item:"Колесная ниша", sub:"Автомобиль, передняя часть", main:"Детали кузова", purpose:"Размещение колеса", location:"Внутри крыла", img:"."},
+{item:"Капот", sub:"Автомобиль, передняя часть", main:"Детали кузова", purpose:"Доступ к двигателю", location:"Сверху моторного отсека", img:"."},
+{item:"Кожух двигателя", sub:"Автомобиль, передняя часть", main:"Детали кузова", purpose:"Декоративная защита", location:"Под капотом", img:"."},
+{item:"Ветровое стекло", sub:"Автомобиль, передняя часть", main:"Детали кузова", purpose:"Обзор и защита", location:"Спереди салона", img:"."},
+{item:"Крепление", sub:"Детали крепления", main:"Детали кузова", purpose:"Фиксация навесных элементов", location:"По всему кузову", img:"."},
+{item:"Газовые пружины", sub:"Детали крепления", main:"Детали кузова", purpose:"Помощь в подъеме крышек", location:"Между кузовом и крышкой", img:"."},
+{item:"Монтажный комплект", sub:"Детали крепления", main:"Детали кузова", purpose:"Клипсы, болты, пистоны", location:"По всему кузову", img:"."},
+{item:"Решетка радиатора", sub:"Детали крепления", main:"Детали кузова", purpose:"Декоративная и защитная", location:"Спереди, между фарами", img:"."},
+{item:"Каркас крыши, стойка крыши", sub:"Автомобиль, средняя часть", main:"Детали кузова", purpose:"Несущая структура", location:"Сверху и по бокам", img:"."},
+{item:"Двери", sub:"Автомобиль, средняя часть", main:"Детали кузова", purpose:"Посадка и высадка", location:"По бокам кузова", img:"."},
+{item:"Cдвигаемая панель крыши", sub:"Автомобиль, средняя часть", main:"Детали кузова", purpose:"Люк", location:"В крыше", img:"."},
+{item:"Боковина", sub:"Автомобиль, средняя часть", main:"Детали кузова", purpose:"Несущий элемент", location:"Сбоку автомобиля", img:"."},
+{item:"Дверные, боковые стекла", sub:"Автомобиль, средняя часть", main:"Детали кузова", purpose:"Обзор и защита", location:"В дверях", img:"."},
+{item:"Зеркала", sub:"Автомобиль, средняя часть", main:"Детали кузова", purpose:"Обзор назад", location:"На дверях", img:"."},
+{item:"Крышка багажника", sub:"Автомобиль, задняя часть", main:"Детали кузова", purpose:"Доступ к багажному отделению", location:"Сзади автомобиля", img:"."},
+{item:"Заднее окно", sub:"Автомобиль, задняя часть", main:"Детали кузова", purpose:"Обзор назад", location:"В крышке багажника", img:"."},
+{item:"Бак топливный", sub:"Автомобиль, задняя часть", main:"Детали кузова", purpose:"Хранение топлива", location:"Под днищем, сзади", img:"."},
+{item:"Облицовка, защитные накладки", sub:"Облицовка, защитные накладки, эмблемы", main:"Детали кузова", purpose:"Защита от царапин", location:"На порогах, бамперах", img:"."},
+{item:"Эмблемы", sub:"Облицовка, защитные накладки, эмблемы", main:"Детали кузова", purpose:"Идентификация марки", location:"На решетке и крышке", img:"."},
+{item:"Брызговик", sub:"Облицовка, защитные накладки, эмблемы", main:"Детали кузова", purpose:"Защита от грязи", location:"За колесами", img:"."},
+{item:"Решетки и накладки передней части автомобиля", sub:"Кузовные детали", main:"Детали кузова", purpose:"Декор и защита", location:"Спереди", img:"."},
+{item:"Вспомогательная рама", sub:"Кузовные детали", main:"Детали кузова", purpose:"Крепление агрегатов", location:"Снизу автомобиля", img:"."},
+{item:"Стекла (периметр кузова)", sub:"Остекление", main:"Детали кузова", purpose:"Остекление", location:"По периметру", img:"."},
+{item:"Заднее стекло", sub:"Остекление", main:"Детали кузова", purpose:"Обзор", location:"Сзади", img:"."},
+{item:"Зеркало наружное", sub:"Зеркала", main:"Детали кузова", purpose:"Обзор", location:"На дверях", img:"."},
+{item:"Зеркальный элемент", sub:"Зеркала", main:"Детали кузова", purpose:"Отражающая поверхность", location:"В корпусе зеркала", img:"."},
+{item:"Боковой фонарь указателя поворота", sub:"Фонари указателя поворота", main:"Детали кузова", purpose:"Дублирование поворотника", location:"На крыле или зеркале", img:"."},
+{item:"Газовые упоры капота", sub:"Газовые/пружинные упоры", main:"Детали кузова", purpose:"Удержание капота", location:"Между капотом и кузовом", img:"."},
+{item:"Газовые упоры багажника", sub:"Газовые/пружинные упоры", main:"Детали кузова", purpose:"Удержание крышки", location:"Между крышкой и кузовом", img:"."},
+{item:"Багажник на крыше", sub:"Багажник на крыше", main:"Дополнительное оборудование", purpose:"Перевозка груза", location:"На крыше", img:"."},
+{item:"Аудиосистема", sub:"Аудиосистема", main:"Дополнительное оборудование", purpose:"Воспроизведение звука", location:"В салоне", img:"."},
+{item:"Система подушек безопасности", sub:"Система безопасности", main:"Дополнительное оборудование", purpose:"Защита при ударе", location:"В руле, панели, сиденьях", img:"."},
+{item:"Аварийное оборудование (домкрат, крюк, инструмент)", sub:"Система безопасности", main:"Дополнительное оборудование", purpose:"Ремонт в дороге", location:"В багажнике", img:"."},
+{item:"Система ремней безопасности", sub:"Система безопасности", main:"Дополнительное оборудование", purpose:"Фиксация пассажира", location:"На стойках и сиденьях", img:"."},
+{item:"Знак аварийной остановки", sub:"Комплектующие", main:"Дополнительное оборудование", purpose:"Обозначение остановки", location:"В багажнике", img:"."}
+];
+
+        let currentQuiz = [];
+        let currentQuestionIndex = 0;
+        let quizScore = 0;
+
+        function loadStats() {
+            const stats = localStorage.getItem('autoTrainerStats');
+            return stats ? JSON.parse(stats) : { totalQuestions: 0, correctAnswers: 0, errors: [], categoryStats: {} };
+        }
+
+        function saveStats(stats) {
+            localStorage.setItem('autoTrainerStats', JSON.stringify(stats));
+        }
+
+        function init() {
+            renderCatalog();
+            populateCategorySelect();
+            updateStats();
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+            if (tabName === 'stats') updateStats();
+            else if (tabName === 'errors') renderErrorQuiz();
+        }
+
+        function escapeHtml(text) {
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        function renderCatalog(filter = '') {
+            const catalogList = document.getElementById('catalog-list');
+            const grouped = {};
+            catalogData.forEach(item => {
+                if (filter && !item.item.toLowerCase().includes(filter.toLowerCase())) return;
+                if (!grouped[item.main]) grouped[item.main] = {};
+                if (!grouped[item.main][item.sub]) grouped[item.main][item.sub] = [];
+                grouped[item.main][item.sub].push(item);
+            });
+            let html = '';
+            for (const mainCat in grouped) {
+                const subcats = grouped[mainCat];
+                const totalItems = Object.values(subcats).reduce((sum, arr) => sum + arr.length, 0);
+                html += `<div class="category"><div class="category-header" onclick="toggleCategory(this)"><span class="category-title">${mainCat}</span><span class="category-count">${totalItems} дет.</span></div><div class="category-content">`;
+                for (const subCat in subcats) {
+                    html += `<div class="subcategory"><div class="subcategory-title">${subCat}</div>`;
+                    subcats[subCat].forEach(item => {
+                        html += `<div class="item" onclick="showItemModal('${escapeHtml(item.item)}')">${item.item}</div>`;
+                    });
+                    html += `</div>`;
+                }
+                html += `</div></div>`;
+            }
+            catalogList.innerHTML = html || '<div class="empty-state"><div class="empty-state-icon">🔍</div><p>Ничего не найдено</p></div>';
+        }
+
+        function searchItems(query) { renderCatalog(query); }
+        function toggleCategory(element) { element.nextElementSibling.classList.toggle('open'); }
+
+        function showItemModal(itemName) {
+            const item = catalogData.find(i => i.item === itemName);
+            if (!item) return;
+            document.getElementById('modal-title').textContent = item.item;
+            document.getElementById('modal-purpose').textContent = item.purpose;
+            document.getElementById('modal-location').textContent = item.location;
+            document.getElementById('modal-category').textContent = item.main;
+            document.getElementById('modal-subcategory').textContent = item.sub;
+            document.getElementById('modal-image').src = item.img;
+            document.getElementById('item-modal').classList.add('active');
+        }
+
+        function closeModal() { document.getElementById('item-modal').classList.remove('active'); }
+
+        function populateCategorySelect() {
+            const select = document.getElementById('quiz-category');
+            const categories = [...new Set(catalogData.map(item => item.main))];
+            categories.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat;
+                option.textContent = cat;
+                select.appendChild(option);
+            });
+        }
+
+        function startQuiz() {
+            const selectedCategory = document.getElementById('quiz-category').value;
+            let items = selectedCategory === 'all' ? [...catalogData] : catalogData.filter(item => item.main === selectedCategory);
+            currentQuiz = shuffleArray(items).slice(0, 20).map(item => ({ item, options: generateOptions(item) }));
+            currentQuestionIndex = 0;
+            quizScore = 0;
+            renderQuizQuestion();
+        }
+
+        function generateOptions(correctItem) {
+            const sameCategoryItems = catalogData.filter(i => i.main === correctItem.main);
+            const subcategories = [...new Set(sameCategoryItems.map(i => i.sub))];
+            const wrongOptions = subcategories.filter(s => s !== correctItem.sub);
+            const shuffled = shuffleArray(wrongOptions).slice(0, 3);
+            shuffled.push(correctItem.sub);
+            return shuffleArray(shuffled);
+        }
+
+        function renderQuizQuestion() {
+            const container = document.getElementById('quiz-content');
+            if (currentQuestionIndex >= currentQuiz.length) {
+                container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🎉</div><h2>Завершен!</h2><p style="margin: 20px 0; font-size: 1.2em;">Правильно: ${quizScore} из ${currentQuiz.length}</p><p style="margin-bottom: 20px;">Точность: ${Math.round((quizScore / currentQuiz.length) * 100)}%</p><button class="btn" onclick="startQuiz()">Еще раз</button></div>`;
+                return;
+            }
+            const q = currentQuiz[currentQuestionIndex];
+            container.innerHTML = `<div class="quiz-header"><div class="quiz-progress">Вопрос ${currentQuestionIndex + 1} из ${currentQuiz.length}</div><div class="quiz-score">Правильно: ${quizScore}</div></div><div class="quiz-item-name">🔧 ${q.item.item}</div><button class="show-details-btn" onclick="toggleQuizDetails()">ℹ️ Показать информацию</button><div id="quiz-details" style="display: none;"><div class="quiz-item-card"><img class="quiz-item-image" src="${q.item.img}" alt="${q.item.item}" onerror="this.src='https://via.placeholder.com/600x400/30363d/c9d1d9?text=Нет+фото'"><div class="quiz-item-details"><div class="quiz-item-detail"><div class="quiz-item-detail-label">Назначение:</div><div class="quiz-item-detail-value">${q.item.purpose}</div></div><div class="quiz-item-detail"><div class="quiz-item-detail-label">Расположение:</div><div class="quiz-item-detail-value">${q.item.location}</div></div><div class="quiz-item-detail"><div class="quiz-item-detail-label">Категория:</div><div class="quiz-item-detail-value">${q.item.main}</div></div><div class="quiz-item-detail"><div class="quiz-item-detail-label">Подкатегория:</div><div class="quiz-item-detail-value" style="color: #58a6ff; font-weight: bold;">${q.item.sub}</div></div></div></div></div><div class="quiz-question">В какой подкатегории находится?</div><div class="quiz-options">${q.options.map((opt, i) => `<div class="quiz-option" onclick="selectAnswer(${i})">${opt}</div>`).join('')}</div>`;
+        }
+
+        function toggleQuizDetails() {
+            const details = document.getElementById('quiz-details');
+            const btn = document.querySelector('.show-details-btn');
+            if (details.style.display === 'none') {
+                details.style.display = 'block';
+                btn.innerHTML = '🙈 Скрыть';
+            } else {
+                details.style.display = 'none';
+                btn.innerHTML = 'ℹ️ Показать информацию';
+            }
+        }
+
+        function selectAnswer(index) {
+            const q = currentQuiz[currentQuestionIndex];
+            const isCorrect = q.options[index] === q.item.sub;
+            const options = document.querySelectorAll('.quiz-option');
+            options.forEach((opt, i) => {
+                opt.classList.add('disabled');
+                if (q.options[i] === q.item.sub) opt.classList.add('correct');
+                else if (i === index && !isCorrect) opt.classList.add('wrong');
+            });
+            const stats = loadStats();
+            stats.totalQuestions++;
+            if (isCorrect) { quizScore++; stats.correctAnswers++; }
+            else {
+                const errorKey = `${q.item.item}|${q.item.sub}|${q.item.main}`;
+                if (!stats.errors.includes(errorKey)) stats.errors.push(errorKey);
+            }
+            if (!stats.categoryStats[q.item.main]) stats.categoryStats[q.item.main] = { total: 0, correct: 0 };
+            stats.categoryStats[q.item.main].total++;
+            if (isCorrect) stats.categoryStats[q.item.main].correct++;
+            saveStats(stats);
+            setTimeout(() => { currentQuestionIndex++; renderQuizQuestion(); }, 1500);
+        }
+
+        function renderErrorQuiz() {
+            const container = document.getElementById('error-quiz-content');
+            const stats = loadStats();
+            if (stats.errors.length === 0) {
+                container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">✅</div><h2>Ошибок нет!</h2></div>`;
+                return;
+            }
+            container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📝</div><h2>Ошибки</h2><p style="margin: 20px 0;">${stats.errors.length} ${getPlural(stats.errors.length, 'ошибка', 'ошибки', 'ошибок')}</p><button class="btn" onclick="startErrorQuiz()">Тренировка</button><button class="btn btn-secondary" onclick="clearErrors()" style="margin-top: 10px;">Очистить</button></div>`;
+        }
+
+        function startErrorQuiz() {
+            const stats = loadStats();
+            if (stats.errors.length === 0) return alert('Нет ошибок!');
+            currentQuiz = stats.errors.map(errStr => {
+                const [itemName, sub, main] = errStr.split('|');
+                const item = catalogData.find(i => i.item === itemName) || { item: itemName, sub, main, purpose: 'Нет данных', location: 'Нет данных', img: '' };
+                return { item, options: generateOptions(item) };
+            });
+            currentQuiz = shuffleArray(currentQuiz).slice(0, 20);
+            currentQuestionIndex = 0;
+            quizScore = 0;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab')[1].classList.add('active');
+            document.getElementById('quiz').classList.add('active');
+            renderQuizQuestion();
+        }
+
+        function clearErrors() {
+            if (confirm('Очистить ошибки?')) {
+                const stats = loadStats();
+                stats.errors = [];
+                saveStats(stats);
+                renderErrorQuiz();
+            }
+        }
+
+        function updateStats() {
+            const stats = loadStats();
+            document.getElementById('total-questions').textContent = stats.totalQuestions;
+            document.getElementById('correct-answers').textContent = stats.correctAnswers;
+            document.getElementById('accuracy').textContent = stats.totalQuestions > 0 ? Math.round((stats.correctAnswers / stats.totalQuestions) * 100) + '%' : '0%';
+            document.getElementById('error-count').textContent = stats.errors.length;
+            const list = document.getElementById('category-stats-list');
+            const categories = [...new Set(catalogData.map(item => item.main))];
+            let html = '';
+            categories.forEach(cat => {
+                const s = stats.categoryStats[cat] || { total: 0, correct: 0 };
+                const acc = s.total > 0 ? Math.round((s.correct / s.total) * 100) : 0;
+                html += `<div class="category-stat-item"><div class="category-stat-header"><span class="category-stat-name">${cat}</span><span class="category-stat-score">${s.correct}/${s.total} (${acc}%)</span></div><div class="progress-bar"><div class="progress-fill" style="width: ${acc}%"></div></div></div>`;
+            });
+            list.innerHTML = html;
+        }
+
+        function shuffleArray(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function getPlural(n, one, few, many) {
+            const mod10 = n % 10, mod100 = n % 100;
+            if (mod10 === 1 && mod100 !== 11) return one;
+            if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
+            return many;
+        }
+
+        window.onclick = function(event) {
+            if (event.target === document.getElementById('item-modal')) closeModal();
+        }
+
+        init();
+    </script>
+</body>
+</html>
